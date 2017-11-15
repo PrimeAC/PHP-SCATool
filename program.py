@@ -70,7 +70,8 @@ for i in json_data['children']:
 			for j in i['arguments']:
 				sensitive[len(sensitive)-1].append(j['name'])
 
-	
+	if i['kind'] == "echo":
+		entrypoints.append([i['arguments'][0]['what']['name'], i['kind']])
 
 
 print(entrypoints)
