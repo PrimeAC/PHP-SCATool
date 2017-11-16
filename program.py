@@ -37,40 +37,45 @@ json_data = json.load(JSONslice)
 
 for i in json_data['children']:
 
-	#entryPoints
-	if i['kind'] == "assign":
-		if i['right'].has_key('what') and i['right']['what']['name'] in patternEntryPoints:
-			#inserir na lista o entrypoint associado a variavel
-			entrypoints.append([i['right']['what']['name'],i['left']['name']])
+	if i['kind'] == "assign": #assign
 
-		#sanitization
-		if i['right'].has_key('what') and i['right']['what']['name'] in patternSanitization:
-			#inserir na lista o sanitization associado a variavel
-			for j in i['right']['arguments']:
-				sanitization.append([i['right']['what']['name'],j['name']])
+		if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
 
-		#query
-		if i['right'].has_key('value'):
+			entrypoints.append([i['right']['what']['name'], i['left']['name']])
+
+		if i['right']['kind'] == "encapsed": #assign -> encapsed
 			query.append([i['left']['name']])
+			
 			for j in i['right']['value']:
+				
 				if j['kind'] == "variable":
 					query[len(query)-1].append(j['name'])
 
-		#sensitiveSinks
-		if i['right'].has_key('what') and i['right']['what']['name'] in patternSensitive:
-			#inserir na lista o sensitiveSink associado a variavel
+		if i['right']['kind'] == "bin": #assign -> bin
+			query.append([i['left']['name']])
+			
+			if i['right']['left']['kind'] == "variable":
+				query[len(query)-1].append(i['right']['left']['name'])
+
+			if i['right']['right']['kind'] == "variable":
+				query[len(query)-1].append(i['right']['right']['name'])
+
+
+		if i['right']['kind'] == "call": #assign -> call
 			sensitive.append([i['right']['what']['name']])
+			
 			for j in i['right']['arguments']:
+
+				if j['kind'] == "variable":
+					sensitive[len(sensitive)-1].append(j['name'])
+
+	if i['kind'] == "call": #call
+		sensitive.append([i['what']['name']])
+		for j in i['arguments']:
+			if j['kind'] == "variable":
 				sensitive[len(sensitive)-1].append(j['name'])
 
-	#sensitiveSinks
-	if i['kind'] == "call":
-		#inserir na lista o sensitiveSink associado a variavel
-			sensitive.append([i['what']['name']])
-			for j in i['arguments']:
-				sensitive[len(sensitive)-1].append(j['name'])
-
-	if i['kind'] == "echo":
+	if i['kind'] == "echo": #echo
 		entrypoints.append([i['arguments'][0]['what']['name'], i['kind']])
 
 
