@@ -89,6 +89,58 @@ for i in json_data['children']:
 		#entrypoints.append([i['arguments'][0]['what']['name'], i['kind']])
 		entrypoints[i['kind']] = i['arguments'][0]['what']['name']
 
+	if i['kind'] == "while": #while
+		
+		if i['body']: #while -> body
+			#print "ESTOU NO BODY"
+			for j in i['body']['children']:
+				#print j
+
+				if j['kind'] == "assign": #assign
+
+					if j['right']['kind'] == "offsetlookup": #assign -> offsetlookup
+
+						#entrypoints.append([i['right']['what']['name'], i['left']['name']])
+						entrypoints[j['left']['name']] = j['right']['what']['name']
+
+					if j['right']['kind'] == "encapsed": #assign -> encapsed
+						#query.append([i['left']['name']])
+						query[j['left']['name']] = []
+						
+						for k in j['right']['value']:
+							
+							if k['kind'] == "variable":
+								#query[len(query)-1].append(j['name'])
+								query[j['left']['name']].append(k['name'])
+
+					if j['right']['kind'] == "bin": #assign -> bin
+						#query.append([i['left']['name']])
+						query[j['left']['name']] = []
+						
+						if j['right']['left']['kind'] == "variable":
+							#query[len(query)-1].append(i['right']['left']['name'])
+							query[j['left']['name']].append(j['right']['left']['name'])
+
+						if j['right']['right']['kind'] == "variable":
+							query[j['left']['name']].append(j['right']['right']['name'])
+
+
+					if j['right']['kind'] == "call": #assign -> call
+						#sensitive.append([i['right']['what']['name']])
+						sensitive[j['right']['what']['name']] = []
+			 
+						for k in j['right']['arguments']:
+
+							if k['kind'] == "variable":
+								#sensitive[len(sensitive)-1].append(j['name'])
+								sensitive[j['right']['what']['name']].append(k['name'])
+
+					if j['right']['kind'] == "variable": #assign -> variable
+						query[j['left']['name']] = [j['right']['name']]
+						
+
+						
+
 
 print(entrypoints)
 print(sensitive)
