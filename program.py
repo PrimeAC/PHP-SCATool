@@ -41,25 +41,20 @@ for i in json_data['children']:
 
 		if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
 
-			#entrypoints.append([i['right']['what']['name'], i['left']['name']])
 			entrypoints[i['left']['name']] = i['right']['what']['name']
 
 		if i['right']['kind'] == "encapsed": #assign -> encapsed
-			#query.append([i['left']['name']])
 			query[i['left']['name']] = []
 			
 			for j in i['right']['value']:
 				
 				if j['kind'] == "variable":
-					#query[len(query)-1].append(j['name'])
 					query[i['left']['name']].append(j['name'])
 
 		if i['right']['kind'] == "bin": #assign -> bin
-			#query.append([i['left']['name']])
 			query[i['left']['name']] = []
 			
 			if i['right']['left']['kind'] == "variable":
-				#query[len(query)-1].append(i['right']['left']['name'])
 				query[i['left']['name']].append(i['right']['left']['name'])
 
 			if i['right']['right']['kind'] == "variable":
@@ -67,27 +62,41 @@ for i in json_data['children']:
 
 
 		if i['right']['kind'] == "call": #assign -> call
-			#sensitive.append([i['right']['what']['name']])
 			sensitive[i['right']['what']['name']] = []
  
 			for j in i['right']['arguments']:
 
 				if j['kind'] == "variable":
-					#sensitive[len(sensitive)-1].append(j['name'])
 					sensitive[i['right']['what']['name']].append(j['name'])
 
 	if i['kind'] == "call": #call
-		#sensitive.append([i['what']['name']])
 		sensitive[i['what']['name']] = []
 
 		for j in i['arguments']:
 			if j['kind'] == "variable":
-				#sensitive[len(sensitive)-1].append(j['name'])
 				sensitive[i['what']['name']].append(j['name'])
 
 	if i['kind'] == "echo": #echo
-		#entrypoints.append([i['arguments'][0]['what']['name'], i['kind']])
 		entrypoints[i['kind']] = i['arguments'][0]['what']['name']
+
+	if i['kind'] == "if": #if
+
+		if i['body']['children'][0]['kind'] == "assign":
+			query[i['body']['children'][0]['left']['name']] = []
+			
+			if i['body']['children'][0]['right']['kind'] == "encapsed":
+
+				for j in i['body']['children'][0]['right']['value']:
+
+					if j['kind'] == "variable":
+						query[i['body']['children'][0]['left']['name']].append(j['name'])
+
+			if i['alternate']['children'][0]['right']['kind'] == "encapsed":
+				
+				for j in i['alternate']['children'][0]['right']['value']:
+
+					if j['kind'] == "variable":
+						query[i['alternate']['children'][0]['left']['name']].append(j['name'])
 
 
 print(entrypoints)
