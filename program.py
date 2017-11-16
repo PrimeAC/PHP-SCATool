@@ -2,9 +2,9 @@ import json
 import sys
 
 
-patternEntryPoints = []
-patternSanitization = []
-patternSensitive = []
+patternEntryPoints = {}
+patternSanitization = {}
+patternSensitive = {}
 
 entrypoints = {}
 sanitization = {} 
@@ -14,26 +14,38 @@ query = {}
 patternFile = open("vulnPatterns.txt", "r")
 
 i = 1
-
+name = ""
 for line in patternFile:
+	if i == 1:
+		name = line.rstrip()
+		if name not in patternEntryPoints.keys():
+			patternEntryPoints.update({name:[]})
+		if name not in patternSanitization.keys():
+			patternSanitization.update({name:[]})
+		if name not in patternSensitive.keys():	
+			patternSensitive.update({name:[]})
 
 	if i == 2:
 		for j in line.rstrip().split(','):
-			if j[1:] not in patternEntryPoints:
-				patternEntryPoints.append(j[1:])
+			if j[1:] not in patternEntryPoints.get(name):
+				patternEntryPoints[name].append(j[1:])
 	if i == 3:
 		for j in line.rstrip().split(','):
-			if j not in patternSanitization:
-				patternSanitization.append(j)
+			if j not in patternSanitization.get(name):
+				patternSanitization[name].append(j)
 	if i == 4:
 		for j in line.rstrip().split(','):
-			if j not in patternSensitive:
-				patternSensitive.append(j)
+			if j not in patternSensitive.get(name):
+				patternSensitive[name].append(j)
 		i = -1
 	i = i + 1
 
 JSONslice = open(sys.argv[1], "r")
 json_data = json.load(JSONslice)
+
+print patternEntryPoints
+print patternSanitization
+print patternSensitive
 
 for i in json_data['children']:
 
@@ -156,4 +168,26 @@ for i in json_data['children']:
 print(entrypoints)
 print(sensitive)
 print(query)
+
+for key, value in sensitive.items():
+	if len(value) > 1:
+		for i in value:
+			if i in query.keys():
+				if len(query.get(i)) > 1:
+					for j in query.get(i):
+						if j in entrypoints.keys():
+							print "Vulnerable!"
+				else:
+					if query.get(i)[0] in entrypoints.keys():
+						print "Vulnerable!"
+	else:
+		for i in value:
+			if i in query.keys():
+				if len(query.get(i)) > 1:
+					for j in query.get(i):
+						if j in entrypoints.keys():
+							print "Vulnerable!"
+				else:
+					if query.get(i)[0] in entrypoints.keys():
+						print "Vulnerable!"
 
