@@ -37,6 +37,11 @@ def assign(i):
 		if i['right']['right']['kind'] == "variable":
 			query[i['left']['name']].append(i['right']['right']['name'])
 
+		if isTainted(i['right']['right']['name']):
+			tainted[i['left']['name']] = tainted[i['right']['right']['name']]
+		elif isTainted(i['right']['left']['name']):
+			tainted[i['left']['name']] = tainted[i['right']['left']['name']]
+
 
 	if i['right']['kind'] == "call": #assign -> call
 		sensitive[i['right']['what']['name']] = []
@@ -174,6 +179,9 @@ for i in json_data['children']:
 
 					if j['kind'] == "variable":
 						query[i['body']['children'][0]['left']['name']].append(j['name'])
+						if isTainted(j['name']):
+							tainted[i['body']['children'][0]['left']['name']] = tainted[j['name']]
+
 
 			if i['alternate']['children'][0]['right']['kind'] == "encapsed":
 				
@@ -181,10 +189,19 @@ for i in json_data['children']:
 
 					if j['kind'] == "variable":
 						query[i['alternate']['children'][0]['left']['name']].append(j['name'])
-
+						if isTainted(j['name']):
+							tainted[i['alternate']['children'][0]['left']['name']] = tainted[j['name']]
 
 
 print(entrypoints)
 print(sensitive)
 print(query)
 print(tainted)
+
+for key, value in sensitive.items():
+	for i in value:
+		if i in tainted.keys():
+			if tainted.get(i) == True:
+				print ("Vulnerable!")
+			else:
+				print ("Not vulnerable!")
