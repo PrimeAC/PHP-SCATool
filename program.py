@@ -54,9 +54,12 @@ def assign(i):
 				sensitive[i['right']['what']['name']].append(j['name'])
 
 				if isTainted(j['name']):
-					tainted[i['right']['what']['name']] = True
-			#else:
-			#	del sensitive[i['right']['what']['name']]
+
+					if getType(i['right']['what']['name']) == 3: #sensitive sink
+						tainted[i['left']['name']] = True
+
+					if getType(i['right']['what']['name']) == 2: #sanitization
+						tainted[i['left']['name']] = False
 
 	if i['right']['kind'] == "variable": #assign -> variable
 		query[i['left']['name']] = [i['right']['name']]
@@ -90,6 +93,17 @@ def isTainted(var):
 
 	else:
 		return isMatch(var)
+
+def getType(value):
+
+	for group in patterns:
+
+		for line in group:
+
+			for field in line:
+
+				if field == value:
+					return group.index(line)
 
 def isMatch(value):
 	
