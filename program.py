@@ -53,6 +53,20 @@ def assign(i):
 		query[i['left']['name']] = [i['right']['name']]
 
 
+def isIf(i):
+	if i['body']['children'][0]['kind'] == "assign":
+		query[i['body']['children'][0]['left']['name']] = []
+		
+		if i['body']['children'][0]['right']['kind'] == "encapsed":
+			for j in i['body']['children'][0]['right']['value']:
+
+				if j['kind'] == "variable":
+					query[i['body']['children'][0]['left']['name']].append(j['name'])
+
+		if i['alternate']:
+			isIf(i['alternate'])
+
+
 patternFile = open("vulnPatterns.txt", "r")
 
 def isTainted(var):
@@ -130,6 +144,10 @@ for i in json_data['children']:
 			for j in i['body']['children']:
 				if j['kind'] == "assign": #assign
 					assign(j)
+
+				if j['kind'] == "if": #if
+					isIf(j)
+
 						
 
 	if i['kind'] == "if": #if
@@ -157,28 +175,3 @@ print(entrypoints)
 print(sensitive)
 print(query)
 print(tainted)
-
-'''
-for key, value in sensitive.items():
-	if len(value) > 1:
-		for i in value:
-			if i in query.keys():
-				if len(query.get(i)) > 1:
-					for j in query.get(i):
-						if j in entrypoints.keys():
-							print "Vulnerable!"
-				else:
-					if query.get(i)[0] in entrypoints.keys():
-						print "Vulnerable!"
-	else:
-		for i in value:
-			if i in query.keys():
-				if len(query.get(i)) > 1:
-					for j in query.get(i):
-						if j in entrypoints.keys():
-							print "Vulnerable!"
-				else:
-					if query.get(i)[0] in entrypoints.keys():
-						print "Vulnerable!"
-
-'''
