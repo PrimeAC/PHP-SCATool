@@ -25,7 +25,7 @@ def assign(i):
 			if j['kind'] == "variable":
 				query[i['left']['name']].append(j['name'])
 				
-				if isTainted(j['name']):
+				if isTrue(j['name']):
 					tainted[i['left']['name']] = True
 				else: 
 					tainted[i['left']['name']] = False
@@ -56,7 +56,7 @@ def assign(i):
 				if isTainted(j['name']):
 
 					if getType(i['right']['what']['name']) == 3: #sensitive sink
-						tainted[i['left']['name']] = True
+						tainted[i['right']['what']['name']] = True
 
 					if getType(i['right']['what']['name']) == 2: #sanitization
 						tainted[i['left']['name']] = False
@@ -85,6 +85,11 @@ def isIf(i):
 
 
 patternFile = open("vulnPatterns.txt", "r")
+
+def isTrue(var):
+	if tainted.has_key(var) and tainted.get(var):
+		return True
+	return False
 
 def isTainted(var):
 
@@ -214,7 +219,7 @@ print(query)
 print(tainted)
 
 for key, value in sensitive.items():
-	if isMatch(key):
+	if getType(key) == 3:
 		print key
 		for i in value:
 			if isTainted(i):
