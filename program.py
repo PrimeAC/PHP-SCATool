@@ -4,6 +4,8 @@ import sys
 
 patterns = []
 
+tainted = {}
+
 entrypoints = {}
 sanitization = {} 
 sensitive = {}
@@ -13,6 +15,7 @@ def assign(i):
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
 
 			entrypoints[i['left']['name']] = i['right']['what']['name']
+			tainted[i['left']['name']] = isTainted(i['right']['what']['name'])
 
 	if i['right']['kind'] == "encapsed": #assign -> encapsed
 		query[i['left']['name']] = []
@@ -21,6 +24,9 @@ def assign(i):
 			
 			if j['kind'] == "variable":
 				query[i['left']['name']].append(j['name'])
+
+				if isTainted(j['name']):
+					tainted[i['left']['name']] = True
 
 	if i['right']['kind'] == "bin": #assign -> bin
 		query[i['left']['name']] = []
@@ -40,11 +46,36 @@ def assign(i):
 			if j['kind'] == "variable":
 				sensitive[i['right']['what']['name']].append(j['name'])
 
+				if isTainted(j['name']):
+					tainted[i['right']['what']['name']] = True
+
 	if i['right']['kind'] == "variable": #assign -> variable
 		query[i['left']['name']] = [i['right']['name']]
 
 
 patternFile = open("vulnPatterns.txt", "r")
+
+def isTainted(var):
+
+	if tainted.has_key(var):
+		return True
+
+	else:
+		return isMatch(var)
+
+def isMatch(value):
+	
+	for group in patterns:
+
+		for line in group:
+
+			for field in line:
+
+				if field == value:
+
+					return True
+
+	return False
 
 i = 1
 name = ""
@@ -56,7 +87,7 @@ for line in patternFile:
 	if i == 2:
 		aux2 = []
 		for j in line.rstrip().split(','):
-			aux2.append(j)
+			aux2.append(j[1:])
 		aux.append(aux2)
 	if i == 3:
 		aux2 = []
@@ -73,8 +104,6 @@ for line in patternFile:
 		aux = []
 		i = -1
 	i = i + 1
-
-print patterns
 
 JSONslice = open(sys.argv[1], "r")
 json_data = json.load(JSONslice)
@@ -127,6 +156,7 @@ for i in json_data['children']:
 print(entrypoints)
 print(sensitive)
 print(query)
+print(tainted)
 
 '''
 for key, value in sensitive.items():
