@@ -104,6 +104,7 @@ for i in json_data['children']:
 			for j in i['body']['children']:
 				if j['kind'] == "assign": #assign
 					assign(j)
+		if 
 
 						
 
@@ -132,6 +133,7 @@ print(entrypoints)
 print(sensitive)
 print(query)
 
+'''
 for key, value in sensitive.items():
 	if len(value) > 1:
 		for i in value:
@@ -154,3 +156,4 @@ for key, value in sensitive.items():
 					if query.get(i)[0] in entrypoints.keys():
 						print "Vulnerable!"
 
+'''
