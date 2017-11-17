@@ -44,6 +44,20 @@ def assign(i):
 		query[i['left']['name']] = [i['right']['name']]
 
 
+def isIf(i):
+	if i['body']['children'][0]['kind'] == "assign":
+		query[i['body']['children'][0]['left']['name']] = []
+		
+		if i['body']['children'][0]['right']['kind'] == "encapsed":
+			for j in i['body']['children'][0]['right']['value']:
+
+				if j['kind'] == "variable":
+					query[i['body']['children'][0]['left']['name']].append(j['name'])
+
+		if i['alternate']:
+			isIf(i['alternate'])
+
+
 patternFile = open("vulnPatterns.txt", "r")
 
 i = 1
@@ -74,7 +88,7 @@ for line in patternFile:
 		i = -1
 	i = i + 1
 
-print patterns
+#print patterns
 
 JSONslice = open(sys.argv[1], "r")
 json_data = json.load(JSONslice)
@@ -101,6 +115,10 @@ for i in json_data['children']:
 			for j in i['body']['children']:
 				if j['kind'] == "assign": #assign
 					assign(j)
+
+				if j['kind'] == "if": #if
+					isIf(j)
+
 						
 
 	if i['kind'] == "if": #if
@@ -124,9 +142,9 @@ for i in json_data['children']:
 
 
 
-print(entrypoints)
-print(sensitive)
-print(query)
+#print(entrypoints)
+#print(sensitive)
+#print(query)
 
 '''
 for key, value in sensitive.items():
