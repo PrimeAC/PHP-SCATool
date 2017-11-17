@@ -2,9 +2,7 @@ import json
 import sys
 
 
-patternEntryPoints = {}
-patternSanitization = {}
-patternSensitive = {}
+patterns = []
 
 entrypoints = {}
 sanitization = {} 
@@ -50,37 +48,36 @@ patternFile = open("vulnPatterns.txt", "r")
 
 i = 1
 name = ""
+aux = []
 for line in patternFile:
 	if i == 1:
 		name = line.rstrip()
-		if name not in patternEntryPoints.keys():
-			patternEntryPoints.update({name:[]})
-		if name not in patternSanitization.keys():
-			patternSanitization.update({name:[]})
-		if name not in patternSensitive.keys():	
-			patternSensitive.update({name:[]})
-
+		aux.append([name])
 	if i == 2:
+		aux2 = []
 		for j in line.rstrip().split(','):
-			if j[1:] not in patternEntryPoints.get(name):
-				patternEntryPoints[name].append(j[1:])
+			aux2.append(j)
+		aux.append(aux2)
 	if i == 3:
+		aux2 = []
 		for j in line.rstrip().split(','):
-			if j not in patternSanitization.get(name):
-				patternSanitization[name].append(j)
+			aux2 = []
+			aux2.append(j)
+		aux.append(aux2)
 	if i == 4:
+		aux2 = []
 		for j in line.rstrip().split(','):
-			if j not in patternSensitive.get(name):
-				patternSensitive[name].append(j)
+			aux2.append(j)
+		aux.append(aux2)
+		patterns.append(aux)
+		aux = []
 		i = -1
 	i = i + 1
 
+print patterns
+
 JSONslice = open(sys.argv[1], "r")
 json_data = json.load(JSONslice)
-
-print patternEntryPoints
-print patternSanitization
-print patternSensitive
 
 for i in json_data['children']:
 
@@ -104,8 +101,6 @@ for i in json_data['children']:
 			for j in i['body']['children']:
 				if j['kind'] == "assign": #assign
 					assign(j)
-		if 
-
 						
 
 	if i['kind'] == "if": #if
