@@ -24,9 +24,11 @@ def assign(i):
 			
 			if j['kind'] == "variable":
 				query[i['left']['name']].append(j['name'])
-
+				
 				if isTainted(j['name']):
 					tainted[i['left']['name']] = True
+				else: 
+					tainted[i['left']['name']] = False
 
 	if i['right']['kind'] == "bin": #assign -> bin
 		query[i['left']['name']] = []
@@ -53,9 +55,16 @@ def assign(i):
 
 				if isTainted(j['name']):
 					tainted[i['right']['what']['name']] = True
+			#else:
+			#	del sensitive[i['right']['what']['name']]
 
 	if i['right']['kind'] == "variable": #assign -> variable
 		query[i['left']['name']] = [i['right']['name']]
+		if isTainted(i['right']['name']):
+			tainted[i['left']['name']] = True
+			recursiveVariables(i['left']['name'])
+		else:
+			tainted[i['left']['name']] = False
 
 
 def isIf(i):
@@ -91,10 +100,16 @@ def isMatch(value):
 			for field in line:
 
 				if field == value:
-
 					return True
 
 	return False
+
+def recursiveVariables(var):
+	for i in query.keys():
+		for j in query.get(i):
+			if j == var and isTainted(i):
+				tainted[i] = tainted[j]
+				recursiveVariables(i)
 
 i = 1
 name = ""
@@ -140,7 +155,8 @@ for i in json_data['children']:
 				sensitive[i['what']['name']].append(j['name'])
 
 	if i['kind'] == "echo": #echo
-		entrypoints[i['kind']] = i['arguments'][0]['what']['name']
+		sensitive[i['kind']] = [i['arguments'][0]['what']['name']]
+		tainted[i['arguments'][0]['what']['name']] = True
 
 
 	if i['kind'] == "while": #while
@@ -152,8 +168,6 @@ for i in json_data['children']:
 
 				if j['kind'] == "if": #if
 					isIf(j)
-
-						
 
 	if i['kind'] == "if": #if
 
@@ -186,9 +200,11 @@ print(query)
 print(tainted)
 
 for key, value in sensitive.items():
-	for i in value:
-		if i in tainted.keys():
-			if tainted.get(i) == True:
-				print ("Vulnerable!")
-			else:
-				print ("Not vulnerable!")
+	if isMatch(key):
+		print key
+		for i in value:
+			if isTainted(i):
+				if tainted.get(i):
+					print ("Vulnerable!")
+				else:
+					print ("Not vulnerable!")
