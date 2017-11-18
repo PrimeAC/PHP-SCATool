@@ -25,8 +25,9 @@ def assign(i):
 			if j['kind'] == "variable":
 				query[i['left']['name']].append(j['name'])
 				
-				if isTrue(j['name']):
+				if isTainted(j['name']):
 					tainted[i['left']['name']] = True
+					
 				else: 
 					tainted[i['left']['name']] = False
 
@@ -51,14 +52,17 @@ def assign(i):
 		for j in i['right']['arguments']:
 
 			if j['kind'] == "variable":
-				sensitive[i['right']['what']['name']].append(j['name'])
 
-				if isTainted(j['name']):
+				if getType(i['right']['what']['name']) == 3: #sensitive sink
+					sensitive[i['right']['what']['name']].append(j['name'])
 
-					if getType(i['right']['what']['name']) == 3: #sensitive sink
+					if isTainted(j['name']):
 						tainted[i['right']['what']['name']] = True
+				
+				if getType(i['right']['what']['name']) == 2: #sanitization
+					sanitization[i['right']['what']['name']].append(j['name'])
 
-					if getType(i['right']['what']['name']) == 2: #sanitization
+					if isTainted(j['name']):
 						tainted[i['left']['name']] = False
 
 	if i['right']['kind'] == "variable": #assign -> variable
@@ -86,14 +90,9 @@ def isIf(i):
 
 patternFile = open("vulnPatterns.txt", "r")
 
-def isTrue(var):
-	if tainted.has_key(var) and tainted.get(var):
-		return True
-	return False
-
 def isTainted(var):
 
-	if tainted.has_key(var):
+	if tainted.has_key(var) and tainted[var]:
 		return True
 
 	else:
@@ -126,7 +125,7 @@ def isMatch(value):
 def recursiveVariables(var):
 	for i in query.keys():
 		for j in query.get(i):
-			if j == var and isTainted(i):
+			if j == var and tainted.has_key(i):
 				tainted[i] = tainted[j]
 				recursiveVariables(i)
 
@@ -222,8 +221,10 @@ for key, value in sensitive.items():
 	if getType(key) == 3:
 		print key
 		for i in value:
-			if isTainted(i):
+			if tainted.has_key(i):
 				if tainted.get(i):
 					print ("Vulnerable!")
-				else:
-					print ("Not vulnerable!")
+					sys.exit(0)
+			
+print ("Not vulnerable!")
+sys.exit(0)
