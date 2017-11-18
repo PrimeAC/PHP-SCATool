@@ -55,17 +55,17 @@ def isAssign(i):
 
 				if patternScanner(i['right']['what']['name'],1) == 3: #sensitive sink
 					sensitive[i['right']['what']['name']].append(j['name'])
-					print sanitization
-					del sanitization[list(sanitization)[0]] #delete all the non 
-					print sanitization
+					if len(sanitization):
+						del sanitization[list(sanitization)[0]] #delete all the non 
+			
 
 					if isTainted(j['name']):
 						tainted[i['right']['what']['name']] = True
 						#means that the variable used in the sink is tainted ==> vulnerable
 						#it is necessary to see if the entry point corresponds with the sink
 						for k in entrypoints:
-							if k in patterns[paragraph][1]: #entry point is in the same block of the sink
-								print "Vulnerable due to inappropriated sanitization function: " + str(list(sanitization)[0])
+							if entrypoints[k] in patterns[paragraph][1]: #entry point is in the same block of the sink
+								print "Vulnerable"
 								sys.exit(0)
 							else:
 								print "Not vulnerable due to the innapropriated entry point: " + str(list(entrypoints)[0])
@@ -79,7 +79,7 @@ def isAssign(i):
 							sys.exit(0)
 						else: #means that the sanitization was not appropriated
 							for k in entrypoints:
-								if k in patterns[paragraph][1]: #entry point is in the same block of the sink
+								if entrypoints[k] in patterns[paragraph][1]: #entry point is in the same block of the sink
 									print "Vulnerable due to inappropriated sanitization function: " + str(list(sanitization)[0])
 									sys.exit(0)
 								else:
@@ -87,7 +87,9 @@ def isAssign(i):
 									sys.exit(0)
 
 
-					#elif paragraph == -1:  means that does not exists sanitization previously and the variable was not tainted 
+					else: #the variable was untainted and was not any sanitization
+						print "Not vulnerable"
+						sys.exit(0)
 
 				if patternScanner(i['right']['what']['name'],1) == 2: #sanitization
 					sanitization[i['right']['what']['name']].append(j['name'])
