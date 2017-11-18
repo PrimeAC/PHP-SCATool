@@ -93,6 +93,9 @@ def isIf(i, recursion):
 		if line['kind'] == "assign":
 			isAssign(line)
 
+		if line['kind'] == 'call':
+			call(line)
+
 	if recursion == True:
 		if i['alternate']:
 			isIf(i['alternate'], True)
@@ -101,6 +104,9 @@ def isIf(i, recursion):
 		for line in i['alternate']['children']:
 			if line['kind'] == "assign":
 				isAssign(line)
+
+			if line['kind'] == 'call':
+				call(line)
 
 def call(i):
 	sensitive[i['what']['name']] = []
