@@ -141,6 +141,9 @@ def isWhile(i):
 			if j['kind'] == "if": #if
 				isIf(j, True)
 
+			if j['kind'] == "call": #if
+				call(j)
+
 def isTainted(var):
 
 	if tainted.has_key(var) and tainted[var]:
