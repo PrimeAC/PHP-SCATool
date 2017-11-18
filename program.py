@@ -11,7 +11,7 @@ sanitization = {}
 sensitive = {}
 query = {}
 
-temp = []
+paragraph = -1
 
 def assign(i):
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
@@ -28,7 +28,7 @@ def assign(i):
 				query[i['left']['name']].append(j['name'])
 				
 				if isTainted(j['name']):
-					tainted[i['left']['name']] = True
+					tainted[i['left']['name']] = True	
 					
 				else: 
 					tainted[i['left']['name']] = False
@@ -58,19 +58,25 @@ def assign(i):
 
 				if patternScanner(i['right']['what']['name'],1) == 3: #sensitive sink
 					sensitive[i['right']['what']['name']].append(j['name'])
+					del sanitization[list(sanitization)[0]] #delete all the non 
 
 					if isTainted(j['name']):
 						tainted[i['right']['what']['name']] = True
-					if len(temp) > 0 and i['right']['what']['name'] in temp:  #significa que houve sanitizacao anteriormente e que a funcao de sanitizacao chamada aplica-se a esta sensitive sink
-						return "Not vulnerable due to the sanitization function: " + str(list(sanitization)[0]) 
+						#means that the variable used in the sink is tainted ==> vulnerable
+						#it is necessary to see if the entry point corresponds with the sink
 
-				
+
+					if paragraph != -1:  #means that exists sanitization previously 
+						if i['right']['what']['name'] in patterns[paragraph][3]:
+							print "Not vulnerable due to the sanitization function: " + str(list(sanitization)[0])
+							sys.exit(0)
+
 				if patternScanner(i['right']['what']['name'],1) == 2: #sanitization
+					print str(i['right']['what']['name']) + " ++++++++ ESARARADEFF " + str(j['name'])
 					sanitization[i['right']['what']['name']].append(j['name'])
-					global temp
-					temp = patterns[patternScanner(i['right']['what']['name'],3)][3] #position 3 is the line that contains the sensitive sinks for some specific sanitization
-					print "ASADSFSGGFG      " + str(temp)
-
+					global paragraph
+					paragraph = patternScanner(i['right']['what']['name'],3) #saves the paragraph number 
+					print "ASADSFSGGFG      " + str(paragraph)
 					
 					tainted[i['left']['name']] = False
 
