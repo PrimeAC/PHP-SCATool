@@ -11,6 +11,9 @@ sanitization = {}
 sensitive = {}
 query = {}
 
+temp = []
+print len(temp)
+
 def assign(i):
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
 
@@ -48,6 +51,7 @@ def assign(i):
 
 	if i['right']['kind'] == "call": #assign -> call
 		sensitive[i['right']['what']['name']] = []
+		sanitization[i['right']['what']['name']] = []
 
 		for j in i['right']['arguments']:
 
@@ -58,12 +62,17 @@ def assign(i):
 
 					if isTainted(j['name']):
 						tainted[i['right']['what']['name']] = True
+					if len(temp) > 0 and i['right']['what']['name'] in temp:  #significa que houve sanitizacao anteriormente e que a funcao de sanitizacao chamada aplica-se a esta sensitive sink
+						return "Not vulnerable due to the sanitization function: " + str(list(sanitization)[0]) 
+
 				
 				if getType(i['right']['what']['name']) == 2: #sanitization
 					sanitization[i['right']['what']['name']].append(j['name'])
+					temp = patterns[getParagraph(i['right']['what']['name'])][3] #position 3 is the line that contains the sensitive sinks for some specific sanitization
+					print "ASADSFSGGFG      " + str(temp)
 
-					if isTainted(j['name']):
-						tainted[i['left']['name']] = False
+					
+					tainted[i['left']['name']] = False
 
 	if i['right']['kind'] == "variable": #assign -> variable
 		query[i['left']['name']] = [i['right']['name']]
@@ -87,8 +96,25 @@ def isIf(i):
 		if i['alternate']:
 			isIf(i['alternate'])
 
+def call(i):
+	sensitive[i['what']['name']] = []
 
-patternFile = open("vulnPatterns.txt", "r")
+	for j in i['arguments']:
+		if j['kind'] == "variable":
+			sensitive[i['what']['name']].append(j['name'])
+
+def echo(i):
+	sensitive[i['kind']] = [i['arguments'][0]['what']['name']]
+	tainted[i['arguments'][0]['what']['name']] = True
+
+def isWhile(i):
+	if i['body']: #while -> body
+		for j in i['body']['children']:
+			if j['kind'] == "assign": #assign
+				assign(j)
+
+			if j['kind'] == "if": #if
+				isIf(j)
 
 def isTainted(var):
 
@@ -122,12 +148,28 @@ def isMatch(value):
 
 	return False
 
+def getParagraph(value):
+
+	for group in patterns:
+
+		for line in group:
+
+			for field in line:
+
+				if field == value:
+					print patterns.index(group)
+					return patterns.index(group)
+
+
+
 def recursiveVariables(var):
 	for i in query.keys():
 		for j in query.get(i):
 			if j == var and tainted.has_key(i):
 				tainted[i] = tainted[j]
 				recursiveVariables(i)
+
+patternFile = open("vulnPatterns.txt", "r")
 
 i = 1
 name = ""
@@ -166,27 +208,14 @@ for i in json_data['children']:
 		assign(i)
 		
 	if i['kind'] == "call": #call
-		sensitive[i['what']['name']] = []
-
-		for j in i['arguments']:
-			if j['kind'] == "variable":
-				sensitive[i['what']['name']].append(j['name'])
+		call(i)
 
 	if i['kind'] == "echo": #echo
-		sensitive[i['kind']] = [i['arguments'][0]['what']['name']]
-		tainted[i['arguments'][0]['what']['name']] = True
-
+		echo(i)
 
 	if i['kind'] == "while": #while
+		isWhile(i)
 		
-		if i['body']: #while -> body
-			for j in i['body']['children']:
-				if j['kind'] == "assign": #assign
-					assign(j)
-
-				if j['kind'] == "if": #if
-					isIf(j)
-
 	if i['kind'] == "if": #if
 
 		if i['body']['children'][0]['kind'] == "assign":
