@@ -184,70 +184,67 @@ def recursiveVariables(var):
 				tainted[i] = tainted[j]
 				recursiveVariables(i)
 
-patternFile = open("vulnPatterns.txt", "r")
+def patternInicialization(filepath):
 
-i = 1
-name = ""
-aux = []
-for line in patternFile:
-	if i == 1:
-		name = line.rstrip()
-		aux.append([name])
-	if i == 2:
-		aux2 = []
-		for j in line.rstrip().split(','):
-			aux2.append(j[1:])
-		aux.append(aux2)
-	if i == 3:
-		aux2 = []
-		for j in line.rstrip().split(','):
+	patternFile = open(filepath, "r")
+
+	i = 1
+	name = ""
+	aux = []
+	for line in patternFile:
+		if i == 1:
+			name = line.rstrip()
+			aux.append([name])
+		if i == 2:
 			aux2 = []
-			aux2.append(j)
-		aux.append(aux2)
-	if i == 4:
-		aux2 = []
-		for j in line.rstrip().split(','):
-			aux2.append(j)
-		aux.append(aux2)
-		patterns.append(aux)
-		aux = []
-		i = -1
-	i = i + 1
+			for j in line.rstrip().split(','):
+				aux2.append(j[1:])
+			aux.append(aux2)
+		if i == 3:
+			aux2 = []
+			for j in line.rstrip().split(','):
+				aux2 = []
+				aux2.append(j)
+			aux.append(aux2)
+		if i == 4:
+			aux2 = []
+			for j in line.rstrip().split(','):
+				aux2.append(j)
+			aux.append(aux2)
+			patterns.append(aux)
+			aux = []
+			i = -1
+		i = i + 1
 
-JSONslice = open(sys.argv[1], "r")
-json_data = json.load(JSONslice)
+def astAnalyser(astFilepath, patternsFilepath):
 
-for i in json_data['children']:
+	patternInicialization(patternsFilepath)
 
-	if i['kind'] == "assign": #assign
-		assign(i)
-		
-	if i['kind'] == "call": #call
-		call(i)
+	JSONslice = open(astFilepath, "r")
+	json_data = json.load(JSONslice)
 
-	if i['kind'] == "echo": #echo
-		echo(i)
+	for i in json_data['children']:
 
-	if i['kind'] == "while": #while
-		isWhile(i)
-		
-	if i['kind'] == "if": #if
-		isIf(i, False)
-
-
-print(entrypoints)
-print(sensitive)
-print(query)
-print(tainted)
-
-for key, value in sensitive.items():
-	if patternScanner(key,1) == 3:
-		print key
-		for i in value:
-			if tainted.has_key(i):
-				if tainted.get(i):
-					print ("Vulnerable!")
-					sys.exit(0)
+		if i['kind'] == "assign": #assign
+			assign(i)
 			
-print ("Not vulnerable!")
-sys.exit(0)
+		if i['kind'] == "call": #call
+			call(i)
+
+		if i['kind'] == "echo": #echo
+			echo(i)
+
+		if i['kind'] == "while": #while
+			isWhile(i)
+			
+		if i['kind'] == "if": #if
+			isIf(i, False)
+
+
+	print(entrypoints)
+	print(sensitive)
+	print(query)
+	print(tainted)
+
+astAnalyser(sys.argv[1], "vulnPatterns.txt")
+
