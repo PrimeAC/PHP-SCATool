@@ -64,19 +64,36 @@ def assign(i):
 						tainted[i['right']['what']['name']] = True
 						#means that the variable used in the sink is tainted ==> vulnerable
 						#it is necessary to see if the entry point corresponds with the sink
+						for k in entrypoints:
+							if k in patterns[paragraph][1]: #entry point is in the same block of the sink
+								print "Vulnerable due to inappropriated sanitization function: " + str(list(sanitization)[0])
+								sys.exit(0)
+							else:
+								print "Not vulnerable due to the innapropriated entry point: " + str(list(entrypoints)[0])
+								sys.exit(0)
 
 
-					if paragraph != -1:  #means that exists sanitization previously 
-						if i['right']['what']['name'] in patterns[paragraph][3]:
+					elif paragraph != -1:  #means that exists sanitization previously and the variable inside the sink is untainted 
+					#it is necessary to confirm that the sanitization made is the indicated one
+						if i['right']['what']['name'] in patterns[paragraph][3]: #means that the sink is in the same block of the sanitization
 							print "Not vulnerable due to the sanitization function: " + str(list(sanitization)[0])
 							sys.exit(0)
+						else: #means that the sanitization was not appropriated
+							for k in entrypoints:
+								if k in patterns[paragraph][1]: #entry point is in the same block of the sink
+									print "Vulnerable due to inappropriated sanitization function: " + str(list(sanitization)[0])
+									sys.exit(0)
+								else:
+									print "Not vulnerable due to the innapropriated entry point: " + str(list(entrypoints)[0])
+									sys.exit(0)
+
+
+					#elif paragraph == -1:  means that does not exists sanitization previously and the variable was not tainted 
 
 				if patternScanner(i['right']['what']['name'],1) == 2: #sanitization
-					print str(i['right']['what']['name']) + " ++++++++ ESARARADEFF " + str(j['name'])
 					sanitization[i['right']['what']['name']].append(j['name'])
 					global paragraph
 					paragraph = patternScanner(i['right']['what']['name'],3) #saves the paragraph number 
-					print "ASADSFSGGFG      " + str(paragraph)
 					
 					tainted[i['left']['name']] = False
 
