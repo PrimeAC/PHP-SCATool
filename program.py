@@ -36,6 +36,8 @@ def checkPattern(entrypoint, sink, paragraph):
 
 
 def isAssign(i):
+	global paragraph
+
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
 
 			entrypoints[i['left']['name']] = i['right']['what']['name']
@@ -104,7 +106,6 @@ def isAssign(i):
 
 				if patternScanner(i['right']['what']['name'],1) == 2: #sanitization
 					sanitization[i['right']['what']['name']].append(j['name'])
-					global paragraph
 					paragraph = patternScanner(i['right']['what']['name'],3) #saves the paragraph number 
 					
 					tainted[i['left']['name']] = False
