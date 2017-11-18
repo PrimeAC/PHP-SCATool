@@ -68,6 +68,7 @@ def assign(i):
 				
 				if getType(i['right']['what']['name']) == 2: #sanitization
 					sanitization[i['right']['what']['name']].append(j['name'])
+					global temp
 					temp = patterns[getParagraph(i['right']['what']['name'])][3] #position 3 is the line that contains the sensitive sinks for some specific sanitization
 					print "ASADSFSGGFG      " + str(temp)
 
@@ -83,18 +84,37 @@ def assign(i):
 			tainted[i['left']['name']] = False
 
 
-def isIf(i):
-	if i['body']['children'][0]['kind'] == "assign":
-		query[i['body']['children'][0]['left']['name']] = []
-		
-		if i['body']['children'][0]['right']['kind'] == "encapsed":
-			for j in i['body']['children'][0]['right']['value']:
+def isIf(i, recursion):
+	for line in i['body']['children']:
+		if line['kind'] == "assign":
+			query[line['left']['name']] = []
+			
+			if line['right']['kind'] == "encapsed":
 
-				if j['kind'] == "variable":
-					query[i['body']['children'][0]['left']['name']].append(j['name'])
+				for j in line['right']['value']:
 
+					if j['kind'] == "variable":
+						query[line['left']['name']].append(j['name'])
+						if isTainted(j['name']):
+							tainted[line['left']['name']] = tainted[j['name']]
+
+	if recursion == True:
 		if i['alternate']:
-			isIf(i['alternate'])
+			isIf(i['alternate'], True)
+
+	else:
+		for line in i['alternate']['children']:
+			if line['right']['kind'] == "encapsed":
+				query[line['left']['name']] = []
+
+				if line['right']['kind'] == "encapsed":
+
+					for j in line['right']['value']:
+
+						if j['kind'] == "variable":
+							query[line['left']['name']].append(j['name'])
+							if isTainted(j['name']):
+								tainted[line['left']['name']] = tainted[j['name']]
 
 def call(i):
 	sensitive[i['what']['name']] = []
@@ -114,7 +134,7 @@ def isWhile(i):
 				assign(j)
 
 			if j['kind'] == "if": #if
-				isIf(j)
+				isIf(j, True)
 
 def isTainted(var):
 
@@ -217,28 +237,7 @@ for i in json_data['children']:
 		isWhile(i)
 		
 	if i['kind'] == "if": #if
-
-		if i['body']['children'][0]['kind'] == "assign":
-			query[i['body']['children'][0]['left']['name']] = []
-			
-			if i['body']['children'][0]['right']['kind'] == "encapsed":
-
-				for j in i['body']['children'][0]['right']['value']:
-
-					if j['kind'] == "variable":
-						query[i['body']['children'][0]['left']['name']].append(j['name'])
-						if isTainted(j['name']):
-							tainted[i['body']['children'][0]['left']['name']] = tainted[j['name']]
-
-
-			if i['alternate']['children'][0]['right']['kind'] == "encapsed":
-				
-				for j in i['alternate']['children'][0]['right']['value']:
-
-					if j['kind'] == "variable":
-						query[i['alternate']['children'][0]['left']['name']].append(j['name'])
-						if isTainted(j['name']):
-							tainted[i['alternate']['children'][0]['left']['name']] = tainted[j['name']]
+		isIf(i, False)
 
 
 print(entrypoints)
