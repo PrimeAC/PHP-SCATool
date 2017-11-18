@@ -12,7 +12,6 @@ sensitive = {}
 query = {}
 
 temp = []
-print len(temp)
 
 def assign(i):
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
@@ -57,7 +56,7 @@ def assign(i):
 
 			if j['kind'] == "variable":
 
-				if getType(i['right']['what']['name']) == 3: #sensitive sink
+				if patternScanner(i['right']['what']['name'],1) == 3: #sensitive sink
 					sensitive[i['right']['what']['name']].append(j['name'])
 
 					if isTainted(j['name']):
@@ -66,9 +65,10 @@ def assign(i):
 						return "Not vulnerable due to the sanitization function: " + str(list(sanitization)[0]) 
 
 				
-				if getType(i['right']['what']['name']) == 2: #sanitization
+				if patternScanner(i['right']['what']['name'],1) == 2: #sanitization
 					sanitization[i['right']['what']['name']].append(j['name'])
-					temp = patterns[getParagraph(i['right']['what']['name'])][3] #position 3 is the line that contains the sensitive sinks for some specific sanitization
+					global temp
+					temp = patterns[patternScanner(i['right']['what']['name'],3)][3] #position 3 is the line that contains the sensitive sinks for some specific sanitization
 					print "ASADSFSGGFG      " + str(temp)
 
 					
@@ -122,45 +122,41 @@ def isTainted(var):
 		return True
 
 	else:
-		return isMatch(var)
+		return patternScanner(var,2)
 
-def getType(value):
+def patternScanner(value, mode):
 
-	for group in patterns:
+	if mode == 1: 
+		for group in patterns:
 
-		for line in group:
+			for line in group:
 
-			for field in line:
+				for field in line:
 
-				if field == value:
-					return group.index(line)
+					if field == value:
+						return group.index(line)
 
-def isMatch(value):
-	
-	for group in patterns:
+	elif mode == 2:
+		for group in patterns:
 
-		for line in group:
+			for line in group:
 
-			for field in line:
+				for field in line:
 
-				if field == value:
-					return True
+					if field == value:
+						return True
 
-	return False
+		return False
 
-def getParagraph(value):
+	else: 
+		for group in patterns:
 
-	for group in patterns:
+			for line in group:
 
-		for line in group:
+				for field in line:
 
-			for field in line:
-
-				if field == value:
-					print patterns.index(group)
-					return patterns.index(group)
-
-
+					if field == value:
+						return patterns.index(group)
 
 def recursiveVariables(var):
 	for i in query.keys():
@@ -247,7 +243,7 @@ print(query)
 print(tainted)
 
 for key, value in sensitive.items():
-	if getType(key) == 3:
+	if patternScanner(key,1) == 3:
 		print key
 		for i in value:
 			if tainted.has_key(i):
