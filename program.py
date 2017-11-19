@@ -17,9 +17,9 @@ conditionalFlag = 0
 
 def checkSanitization(sink):
 	if paragraph != None:
-		return checkPattern(sink)
+		checkSpecificPattern(sink)
 	else:
-		return checkVulnerability(False, ["entry point does not match with sensitive sink"])
+		checkVulnerability(False, ["entry point does not match with sensitive sink"])
 
 def checkVulnerability(vulnerable, info):
 	temp = ""
@@ -40,36 +40,32 @@ def checkVulnerability(vulnerable, info):
 		print "> Due to: " + info[0]
 		sys.exit(0)
 
-
-def checkPattern(sink):
+def checkSpecificPattern(sink):
 	for entry in entrypoints:
-		if paragraph != None: #means that exists sanitization previously
+		if entrypoints[entry] in patterns[paragraph][1]:
 
-			if entrypoints[entry] in patterns[paragraph][1]:
-
-				if sink in patterns[paragraph][3]:
-					checkVulnerability(False, [sanitization])  #false due to valid sanitization for entry and sink
-				
-				else:
-					checkVulnerability(False, ["sink used is not valid"])
+			if sink in patterns[paragraph][3]:
+				checkVulnerability(False, [sanitization])  #false due to valid sanitization for entry and sink
 			
-			elif sink in patterns[paragraph][3]:
-				checkVulnerability(False, ["entry point used is not valid"]) 
-			
-			else:  #vulnerable
-				checkVulnerability(True, [patterns[paragraph][0][0], patterns[paragraph][2]])
-
-		else: #there was no sanitization previously
-			i = 0
-			for pattern in patterns:
-
-				if entrypoints[entry] in pattern[1] and sink in pattern[3]:
-					checkVulnerability(True, [patterns[i][0][0], patterns[i][2]])
-				i = i +1
-
 			else:
-				checkVulnerability(False, ["entry point does not match with sensitive sink"])
+				checkVulnerability(False, ["sink used is not valid"])
+			
+		elif sink in patterns[paragraph][3]:
+			checkVulnerability(False, ["entry point used is not valid"]) 
+		
+		else:  #vulnerable
+			checkVulnerability(True, [patterns[paragraph][0][0], patterns[paragraph][2]])
 
+def checkAllPatterns(sink):
+	for entry in entrypoints:
+		i = 0
+		for pattern in patterns:
+
+			if entrypoints[entry] in pattern[1] and sink in pattern[3]:
+				checkVulnerability(True, [patterns[i][0][0], patterns[i][2]])
+			i = i +1
+
+		checkVulnerability(False, ["entry point does not match with sensitive sink"])
 
 def isAssign(i):
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
@@ -168,7 +164,7 @@ def call(i):
 		
 		if patternScanner(i['what']['name'],1) == 3: #sensitive sink
 			if isTainted(j['name']):
-				checkPattern(i['what']['name'])
+				checkAllPatterns(i['what']['name'])
 			else:
 				checkSanitization(i['what']['name'])
 
@@ -188,7 +184,7 @@ def echo(i):
 			entrypoints[i['kind']] = j['what']['name']
 
 	tainted[i['arguments'][0]['what']['name']] = True
-	checkPattern(i['kind'])
+	checkAllPatterns(i['kind'])
 
 def isWhile(i):
 	if i['body']: #while -> body
