@@ -12,6 +12,7 @@ sensitive = {}
 query = {}
 
 paragraph = -1
+conditionalFlag = 0
 
 def checkVulnerability(sink):
 
@@ -60,9 +61,9 @@ def isAssign(i):
 			if j['kind'] == "variable":
 				query[i['left']['name']].append(j['name'])
 				
-				if isTainted(j['name']):
-					tainted[i['left']['name']] = tainted[j['name']]
-				else:
+				if isTainted(j['name']) and conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False:
+					tainted[i['left']['name']] = True
+				elif conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False:
 					tainted[i['left']['name']] = False
 
 	if i['right']['kind'] == "bin": #assign -> bin
@@ -90,10 +91,10 @@ def isAssign(i):
 
 	if i['right']['kind'] == "variable": #assign -> variable
 		query[i['left']['name']] = [i['right']['name']]
-		if isTainted(i['right']['name']):
+		if isTainted(i['right']['name']) and conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False:
 			tainted[i['left']['name']] = True
 			recursiveVariables(i['left']['name'])
-		else:
+		elif conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False:
 			tainted[i['left']['name']] = False
 
 
@@ -125,6 +126,9 @@ def call(i):
 		if patternScanner(i['what']['name'],1) == 3: #sensitive sink
 			if isTainted(j['name']):
 				checkVulnerability(i['what']['name'])
+			else:
+				print "Not vulnerable"
+				sys.exit(0)
 
 		if patternScanner(i['what']['name'],1) == 2: #sanitization
 			sanitization[i['what']['name']].append(j['name'])
@@ -248,7 +252,9 @@ def astAnalyser(astFilepath, patternsFilepath):
 			isWhile(i)
 			
 		if i['kind'] == "if": #if
+			conditionalFlag = 1
 			isIf(i, False)
+			conditionalFlag = 0
 
 
 	#print(entrypoints)
