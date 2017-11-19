@@ -6,6 +6,8 @@ patterns = []
 
 tainted = {}
 
+conditional = {}
+
 entrypoints = {}
 query = {}
 
@@ -22,16 +24,20 @@ def checkSanitization(sink):
 def checkVulnerability(vulnerable, info):
 	temp = ""
 	if vulnerable == True:
-		print "Program is Vulnerable"
-		print "Type of vulnerability: " + info[0]
-		print "Possible correction(s): "
-		for sanitizations in info[1]:
-			print sanitizations
+		print "> Program is vulnerable!"
+		print "> Type of vulnerability: " + info[0]
+		lenght = len(info[1])
+		print "> Possible correction(s): "
+		while lenght > 1:
+			temp = temp + info[1][lenght-1] + ", "
+			lenght = lenght - 1
+		temp = temp + info[1][lenght-1]
+		print temp
 		sys.exit(0)
 
 	else:
-		print "Program is Not Vulnerable"
-		print "Due to: " + info[0]
+		print "> Program is not vulnerable!"
+		print "> Due to: " + info[0]
 		sys.exit(0)
 
 
@@ -66,7 +72,6 @@ def checkPattern(sink):
 
 
 def isAssign(i):
-	
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
 
 			entrypoints[i['left']['name']] = i['right']['what']['name']
@@ -80,10 +85,29 @@ def isAssign(i):
 			if j['kind'] == "variable":
 				query[i['left']['name']].append(j['name'])
 				
-				if isTainted(j['name']) and conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False:
-					tainted[i['left']['name']] = True
-				elif conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False:
-					tainted[i['left']['name']] = False
+				if isTainted(j['name']):
+					
+					if conditionalFlag == 1:
+						if conditional.has_key(i['left']['name']):
+							conditional[i['left']['name']].append(True)
+						else:
+							conditional[i['left']['name']] = [True]
+						 
+					
+					else:
+						tainted[i['left']['name']] = True
+
+				else:
+
+					if conditionalFlag == 1:
+						if conditional.has_key(i['left']['name']):
+							conditional[i['left']['name']].append(False)
+						else:
+							conditional[i['left']['name']] = [False]
+
+					else:
+						tainted[i['left']['name']] = False
+			
 
 	if i['right']['kind'] == "bin": #assign -> bin
 		query[i['left']['name']] = []
@@ -96,6 +120,7 @@ def isAssign(i):
 
 		if isTainted(i['right']['right']['name']):
 			tainted[i['left']['name']] = tainted[i['right']['right']['name']]
+
 		elif isTainted(i['right']['left']['name']):
 			tainted[i['left']['name']] = tainted[i['right']['left']['name']]
 
@@ -245,6 +270,20 @@ def patternInicialization(filepath):
 			i = -1
 		i = i + 1
 
+def conditionalVerification():
+	flag = False
+
+	for variable in conditional:
+
+		for value in conditional[variable]:
+
+			if value == True:
+				tainted[variable] = True
+				flag = True
+				break
+
+		if flag == False:
+			tainted[variable] = False
 
 def astAnalyser(astFilepath, patternsFilepath):
 	global conditionalFlag
@@ -254,7 +293,7 @@ def astAnalyser(astFilepath, patternsFilepath):
 	json_data = json.load(JSONslice)
 
 	for i in json_data['children']:
-		
+	
 		if i['kind'] == "assign": #assign
 			isAssign(i)
 			
@@ -270,11 +309,7 @@ def astAnalyser(astFilepath, patternsFilepath):
 		if i['kind'] == "if": #if
 			conditionalFlag = 1
 			isIf(i, False)
+			conditionalVerification()
 			conditionalFlag = 0
-
-
-	#print(entrypoints)
-	#print(query)
-	#print(tainted)
 
 astAnalyser(sys.argv[1], "vulnPatterns.txt")
