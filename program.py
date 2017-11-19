@@ -7,10 +7,9 @@ patterns = []
 tainted = {}
 
 entrypoints = {}
-sanitization = {} 
-sensitive = {}
 query = {}
 
+sanitization = None
 paragraph = None 
 conditionalFlag = 0
 
@@ -26,8 +25,8 @@ def checkVulnerability(vulnerable, info):
 		print "Program is Vulnerable"
 		print "Type of vulnerability: " + info[0]
 		print "Possible correction(s): "
-		for sanitization in info[1]:
-			print sanitization
+		for sanitizations in info[1]:
+			print sanitizations
 		sys.exit(0)
 
 	else:
@@ -39,12 +38,11 @@ def checkVulnerability(vulnerable, info):
 def checkPattern(sink):
 	for entry in entrypoints:
 		if paragraph != None: #means that exists sanitization previously
-			print paragraph
 
 			if entrypoints[entry] in patterns[paragraph][1]:
 
 				if sink in patterns[paragraph][3]:
-					checkVulnerability(False, [list(sanitization)[0]])  #false due to valid sanitization for entry and sink
+					checkVulnerability(False, [sanitization])  #false due to valid sanitization for entry and sink
 				
 				else:
 					checkVulnerability(False, ["sink used is not valid"])
@@ -103,8 +101,6 @@ def isAssign(i):
 
 
 	if i['right']['kind'] == "call": #assign -> call
-		sensitive[i['right']['what']['name']] = []
-		sanitization[i['right']['what']['name']] = [] 
 
 		#new implementation
 		tainted[i['left']['name']] = call(i['right'])
@@ -141,25 +137,23 @@ def isIf(i, recursion):
 
 def call(i):
 	global paragraph
-	sensitive[i['what']['name']] = []
+	global sanitization
 
 	for j in i['arguments']:
 		
 		if patternScanner(i['what']['name'],1) == 3: #sensitive sink
-			if len(sanitization):	
-				del sanitization[list(sanitization)[0]] #delete all the non sanitization methods
 			if isTainted(j['name']):
 				checkPattern(i['what']['name'])
 			else:
 				checkSanitization(i['what']['name'])
 
 		if patternScanner(i['what']['name'],1) == 2: #sanitization
-			sanitization[i['what']['name']].append(j['name'])
+			sanitization = i['what']['name']
+			print sanitization
 			paragraph = patternScanner(i['what']['name'],3) #saves the paragraph number 
 			return False
 
 		if j['kind'] == "variable" and isTainted(j['name']):
-			sensitive[i['what']['name']].append(j['name'])
 			return True
 
 
@@ -168,7 +162,6 @@ def echo(i):
 		if j['kind'] == "offsetlookup":
 			entrypoints[i['kind']] = j['what']['name']
 
-	sensitive[i['kind']] = [i['arguments'][0]['what']['name']]
 	tainted[i['arguments'][0]['what']['name']] = True
 	checkPattern(i['kind'])
 
@@ -281,7 +274,6 @@ def astAnalyser(astFilepath, patternsFilepath):
 
 
 	#print(entrypoints)
-	#print(sensitive)
 	#print(query)
 	#print(tainted)
 
