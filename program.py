@@ -6,6 +6,8 @@ patterns = []
 
 tainted = {}
 
+conditional = {}
+
 entrypoints = {}
 sanitization = {} 
 sensitive = {}
@@ -62,7 +64,6 @@ def checkPattern(sink):
 
 
 def isAssign(i):
-	
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
 
 			entrypoints[i['left']['name']] = i['right']['what']['name']
@@ -76,10 +77,29 @@ def isAssign(i):
 			if j['kind'] == "variable":
 				query[i['left']['name']].append(j['name'])
 				
-				if isTainted(j['name']) and conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False:
-					tainted[i['left']['name']] = True
-				elif conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False:
-					tainted[i['left']['name']] = False
+				if isTainted(j['name']):
+					
+					if conditionalFlag == 1:
+						if conditional.has_key(i['left']['name']):
+							conditional[i['left']['name']].append(True)
+						else:
+							conditional[i['left']['name']] = [True]
+						 
+					
+					else:
+						tainted[i['left']['name']] = True
+
+				else:
+
+					if conditionalFlag == 1:
+						if conditional.has_key(i['left']['name']):
+							conditional[i['left']['name']].append(False)
+						else:
+							conditional[i['left']['name']] = [False]
+
+					else:
+						tainted[i['left']['name']] = False
+			
 
 	if i['right']['kind'] == "bin": #assign -> bin
 		query[i['left']['name']] = []
@@ -249,6 +269,21 @@ def patternInicialization(filepath):
 			i = -1
 		i = i + 1
 
+def conditionalVerification():
+	flag = False
+
+	for variable in conditional:
+
+		for value in conditional[variable]:
+
+			if value == True:
+				tainted[variable] = True
+				flag = True
+				break
+
+		if flag == False:
+			tainted[variable] = False
+
 def astAnalyser(astFilepath, patternsFilepath):
 	global conditionalFlag
 	patternInicialization(patternsFilepath)
@@ -257,7 +292,7 @@ def astAnalyser(astFilepath, patternsFilepath):
 	json_data = json.load(JSONslice)
 
 	for i in json_data['children']:
-		
+		print tainted
 		if i['kind'] == "assign": #assign
 			isAssign(i)
 			
@@ -273,6 +308,7 @@ def astAnalyser(astFilepath, patternsFilepath):
 		if i['kind'] == "if": #if
 			conditionalFlag = 1
 			isIf(i, False)
+			conditionalVerification()
 			conditionalFlag = 0
 
 
