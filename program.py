@@ -21,7 +21,6 @@ def checkVulnerability(sink):
 			print "Vulnerable"
 			sys.exit(0)
 		else:
-			#print "ESTE -------"
 			print "Not vulnerable"
 			sys.exit(0)
 
@@ -53,7 +52,6 @@ def checkPattern(sink):
 
 def isAssign(i):
 	
-	#print str(conditionalFlag) + " cond flag"
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
 
 			entrypoints[i['left']['name']] = i['right']['what']['name']
@@ -67,11 +65,9 @@ def isAssign(i):
 			if j['kind'] == "variable":
 				query[i['left']['name']].append(j['name'])
 				
-				if isTainted(j['name']) and conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False: #e preciso estas condicoes todas?
-					print "ENTREI NO IF 1 " + str(i['left']['name']) + " - " + str(j['name'])
+				if isTainted(j['name']) and conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False:
 					tainted[i['left']['name']] = True
 				elif conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False:
-					print "ENTREI NO ELIF 1"
 					tainted[i['left']['name']] = False
 
 	if i['right']['kind'] == "bin": #assign -> bin
@@ -91,8 +87,7 @@ def isAssign(i):
 
 	if i['right']['kind'] == "call": #assign -> call
 		sensitive[i['right']['what']['name']] = []
-		sanitization[i['right']['what']['name']] = []
-		#print str(sanitization) + "RRRRRRRRRRRRRRRRRRRRRR" 
+		sanitization[i['right']['what']['name']] = [] 
 
 		#new implementation
 		tainted[i['left']['name']] = call(i['right'])
@@ -101,16 +96,13 @@ def isAssign(i):
 	if i['right']['kind'] == "variable": #assign -> variable
 		query[i['left']['name']] = [i['right']['name']]
 		if isTainted(i['right']['name']) and conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False:
-			print "ENTREI NO IF"
 			tainted[i['left']['name']] = True
 			recursiveVariables(i['left']['name'])
 		elif conditionalFlag == 0 and tainted.has_key(i['left']['name']) == False:
-			print "ENTREI NO ELIF"
 			tainted[i['left']['name']] = False
 
 
 def isIf(i, recursion):
-	#print "ISif " +str(conditionalFlag)
 	for line in i['body']['children']:
 		if line['kind'] == "assign":
 			isAssign(line)
@@ -132,21 +124,16 @@ def isIf(i, recursion):
 
 def call(i):
 	global paragraph
-	#print str(paragraph) + " PARAADSFSAF"
 	sensitive[i['what']['name']] = []
 
 	for j in i['arguments']:
 		
 		if patternScanner(i['what']['name'],1) == 3: #sensitive sink
-			if len(sanitization):
-				#print "sanitizacao"		
+			if len(sanitization):	
 				del sanitization[list(sanitization)[0]] #delete all the non sanitization methods
 			if isTainted(j['name']):
 				checkVulnerability(i['what']['name'])
-			else:							#se o que entrar no sink nao estiver tainted nao quer dizer que seja nao vulneravel
-											#pode ter sido feita uma ma sanitizacao e continuar a ser vulneravel
-											#so se for tainted e que se pode assumir que e vulneravel e so se tem de comparar se o entry bate certo com o sink
-				#print "AQUELE -------"
+			else:							
 				checkVulnerability(i['what']['name'])	
 
 		if patternScanner(i['what']['name'],1) == 2: #sanitization
@@ -271,8 +258,7 @@ def astAnalyser(astFilepath, patternsFilepath):
 			isWhile(i)
 			
 		if i['kind'] == "if": #if
-			conditionalFlag = 1
-			#print str(conditionalFlag) + "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" 
+			conditionalFlag = 1 
 			isIf(i, False)
 			conditionalFlag = 0
 
@@ -283,8 +269,3 @@ def astAnalyser(astFilepath, patternsFilepath):
 	#print(tainted)
 
 astAnalyser(sys.argv[1], "vulnPatterns.txt")
-
-
-''' a conditionalFlag esta sempre a zero porque nao e global logo a igualacao a 1 e so temporaria e a partir do momento em que se chama o isif ela volta a ser 0
-o mesmo problema para o paragraph pois ta a ser mal declarada como global
-'''
