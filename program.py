@@ -25,23 +25,23 @@ def checkSanitization(sink):
 def checkVulnerability(vulnerable, info):
 	temp = ""
 	if vulnerable == True:
-		print "Program is Vulnerable"
-		print "Type of vulnerability: " + info[0]
-		print "Possible correction(s): "
+		print "> Program is vulnerable!"
+		print "> Type of vulnerability: " + info[0]
+		print "> Possible correction(s): "
 		for sanitization in info[1]:
 			print sanitization
 		sys.exit(0)
 
 	else:
-		print "Program is Not Vulnerable"
-		print "Due to: " + info[0]
+		print "> Program is not vulnerable!"
+		print "> Due to: " + info[0]
 		sys.exit(0)
 
 
 def checkPattern(sink):
 	for entry in entrypoints:
 		if paragraph != None: #means that exists sanitization previously
-			print paragraph
+
 
 			if entrypoints[entry] in patterns[paragraph][1]:
 
@@ -295,7 +295,7 @@ def astAnalyser(astFilepath, patternsFilepath):
 	json_data = json.load(JSONslice)
 
 	for i in json_data['children']:
-		print tainted
+	
 		if i['kind'] == "assign": #assign
 			isAssign(i)
 			
