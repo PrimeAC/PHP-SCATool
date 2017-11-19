@@ -14,20 +14,29 @@ query = {}
 paragraph = -1
 conditionalFlag = 0
 
-def checkVulnerability(sink):
+def checkSanitization():
+	if paragraph != -1:
+		return checkPattern()
+	else:
+		return checkVulnerability()
 
-	for entry in entrypoints:
-		if checkPattern(entrypoints[entry], sink, paragraph):
-			print "Vulnerable"
-			sys.exit(0)
-		else:
-			print "Not vulnerable"
-			sys.exit(0)
+def checkVulnerability(vulnerable, info):
+	if vulnerable == True:
+		print "Result: Vulnerable"
+		print "Type of vulnerability: " + info[0]
+		print "Possible correction(s): "
+		for sanitization in info[1]:
+			print sanitization
+		sys.exit(0)
+
+	else:
+		print "Result: Not Vulnerable"
+		print "Due to: " + info[0]
+		sys.exit(0)
 
 def checkPattern(entrypoint, sink, paragraph):
 
 	if paragraph != -1:
-	
 		if entrypoint in patterns[paragraph][1] and sink in patterns[paragraph][3]:
 			return True
 
@@ -35,7 +44,6 @@ def checkPattern(entrypoint, sink, paragraph):
 			return False
 
 	else:
-
 		for pattern in patterns:
 
 			if entrypoint in pattern[1] and sink in pattern[3]:
@@ -99,6 +107,7 @@ def isAssign(i):
 
 
 def isIf(i, recursion):
+	print conditionalFlag
 	for line in i['body']['children']:
 		if line['kind'] == "assign":
 			isAssign(line)
@@ -125,10 +134,11 @@ def call(i):
 		
 		if patternScanner(i['what']['name'],1) == 3: #sensitive sink
 			if isTainted(j['name']):
-				checkVulnerability(i['what']['name'])
+				#checkVulnerability(i['what']['name'])
+				checkPattern(i['what']['name'])
 			else:
-				print "Not vulnerable"
-				sys.exit(0)
+				#checkVulnerability(i['what']['name'])
+				checkSanitization()
 
 		if patternScanner(i['what']['name'],1) == 2: #sanitization
 			sanitization[i['what']['name']].append(j['name'])
@@ -147,7 +157,7 @@ def echo(i):
 
 	sensitive[i['kind']] = [i['arguments'][0]['what']['name']]
 	tainted[i['arguments'][0]['what']['name']] = True
-	checkVulnerability(i['kind'])
+	checkPatterns(i['kind'])
 
 def isWhile(i):
 	if i['body']: #while -> body
@@ -253,6 +263,7 @@ def astAnalyser(astFilepath, patternsFilepath):
 			
 		if i['kind'] == "if": #if
 			conditionalFlag = 1
+			print conditionalFlag
 			isIf(i, False)
 			conditionalFlag = 0
 
