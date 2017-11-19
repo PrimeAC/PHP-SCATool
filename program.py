@@ -13,6 +13,15 @@ query = {}
 
 paragraph = -1
 
+def checkVulnerability(sink):
+
+	for entry in entrypoints:
+		if checkPattern(entrypoints[entry], sink, paragraph):
+			print "Vulnerable"
+			sys.exit(0)
+		else:
+			print "Not vulnerable"
+			sys.exit(0)
 
 def checkPattern(entrypoint, sink, paragraph):
 
@@ -53,6 +62,8 @@ def isAssign(i):
 				
 				if isTainted(j['name']):
 					tainted[i['left']['name']] = tainted[j['name']]
+				else:
+					tainted[i['left']['name']] = False
 
 	if i['right']['kind'] == "bin": #assign -> bin
 		query[i['left']['name']] = []
@@ -73,42 +84,9 @@ def isAssign(i):
 		sensitive[i['right']['what']['name']] = []
 		sanitization[i['right']['what']['name']] = []
 
-		for j in i['right']['arguments']:
+		#new implementation
+		tainted[i['left']['name']] = call(i['right'])
 
-			if j['kind'] == "variable":
-
-				if patternScanner(i['right']['what']['name'],1) == 3: #sensitive sink
-					sensitive[i['right']['what']['name']].append(j['name'])
-
-					if len(sanitization):
-						del sanitization[list(sanitization)[0]] #delete all the non 
-			
-					if isTainted(j['name']):
-						for entry in entrypoints:
-							if checkPattern(entrypoints[entry], i['right']['what']['name'], paragraph):
-								print "Vulnerable due to bad entrypoint and sink"
-							else:
-								print "Not vulnerable"
-
-
-					else:
-
-						if paragraph != -1:
-							for entry in entrypoints:
-								if checkPattern(entrypoints[entry], i['right']['what']['name'], paragraph):
-									print "Not vulnerable due to good entrypoint, sanitization and sink"
-								else:
-									print "Vulnerable due to bad sanitization"
-
-						else:
-							print "Not vulnerable"
-					
-
-				if patternScanner(i['right']['what']['name'],1) == 2: #sanitization
-					sanitization[i['right']['what']['name']].append(j['name'])
-					paragraph = patternScanner(i['right']['what']['name'],3) #saves the paragraph number 
-					
-					tainted[i['left']['name']] = False
 
 	if i['right']['kind'] == "variable": #assign -> variable
 		query[i['left']['name']] = [i['right']['name']]
@@ -143,12 +121,29 @@ def call(i):
 	sensitive[i['what']['name']] = []
 
 	for j in i['arguments']:
-		if j['kind'] == "variable":
+		
+		if patternScanner(i['what']['name'],1) == 3: #sensitive sink
+			if isTainted(j['name']):
+				checkVulnerability(i['what']['name'])
+
+		if patternScanner(i['what']['name'],1) == 2: #sanitization
+			sanitization[i['what']['name']].append(j['name'])
+			paragraph = patternScanner(i['what']['name'],3) #saves the paragraph number 
+			return False
+
+		if j['kind'] == "variable" and isTainted(j['name']):
 			sensitive[i['what']['name']].append(j['name'])
+			return True
+
 
 def echo(i):
+	for j in i['arguments']:
+		if j['kind'] == "offsetlookup":
+			entrypoints[i['kind']] = j['what']['name']
+
 	sensitive[i['kind']] = [i['arguments'][0]['what']['name']]
 	tainted[i['arguments'][0]['what']['name']] = True
+	checkVulnerability(i['kind'])
 
 def isWhile(i):
 	if i['body']: #while -> body
@@ -172,44 +167,32 @@ def isTainted(var):
 
 def patternScanner(value, mode):
 
-	if mode == 1: 
-		for group in patterns:
+	for group in patterns:
 
-			for line in group:
+		for line in group:
 
-				for field in line:
+			for field in line:
 
-					if field == value:
+				if field == value:
+
+					if mode == 1:
 						return group.index(line)
 
-	elif mode == 2:
-		for group in patterns:
-
-			for line in group:
-
-				for field in line:
-
-					if field == value:
+					if mode == 2:
 						return True
 
+					if mode == 3:
+						return patterns.index(group)
+	if mode == 2:
 		return False
 
-	else: 
-		for group in patterns:
-
-			for line in group:
-
-				for field in line:
-
-					if field == value:
-						return patterns.index(group)
-
 def recursiveVariables(var):
-	for i in query.keys():
-		for j in query.get(i):
-			if j == var and tainted.has_key(i):
-				tainted[i] = tainted[j]
-				recursiveVariables(i)
+
+	for key in query:
+		for value in query[key]:
+			if value == var and tainted.has_key(key):
+				tainted[key] = tainted[var]
+				recursiveVariables(key)
 
 def patternInicialization(filepath):
 
@@ -268,10 +251,10 @@ def astAnalyser(astFilepath, patternsFilepath):
 			isIf(i, False)
 
 
-	print(entrypoints)
-	print(sensitive)
-	print(query)
-	print(tainted)
+	#print(entrypoints)
+	#print(sensitive)
+	#print(query)
+	#print(tainted)
 
 astAnalyser(sys.argv[1], "vulnPatterns.txt")
 
