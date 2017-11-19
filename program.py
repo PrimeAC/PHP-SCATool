@@ -11,18 +11,19 @@ sanitization = {}
 sensitive = {}
 query = {}
 
-paragraph = -1
+paragraph = None 
 conditionalFlag = 0
 
-def checkSanitization():
-	if paragraph != -1:
-		return checkPattern()
+def checkSanitization(sink):
+	if paragraph != None:
+		return checkPattern(sink)
 	else:
 		return checkVulnerability(False, ["entry point does not match with sensitive sink"])
 
 def checkVulnerability(vulnerable, info):
+	temp = ""
 	if vulnerable == True:
-		print "Result: Vulnerable"
+		print "Program is Vulnerable"
 		print "Type of vulnerability: " + info[0]
 		print "Possible correction(s): "
 		for sanitization in info[1]:
@@ -30,32 +31,37 @@ def checkVulnerability(vulnerable, info):
 		sys.exit(0)
 
 	else:
-		print "Result: Not Vulnerable"
+		print "Program is Not Vulnerable"
 		print "Due to: " + info[0]
 		sys.exit(0)
 
 
 def checkPattern(sink):
-	
 	for entry in entrypoints:
-		if paragraph != -1: #means that exists sanitization previously
+		if paragraph != None: #means that exists sanitization previously
+			print paragraph
 
-			if entry in patterns[paragraph][1]:
+			if entrypoints[entry] in patterns[paragraph][1]:
+
 				if sink in patterns[paragraph][3]:
-					checkVulnerability(False, [list(sanitization)[0]])  #false due to valid danitization for entry and sink
+					checkVulnerability(False, [list(sanitization)[0]])  #false due to valid sanitization for entry and sink
+				
 				else:
 					checkVulnerability(False, ["sink used is not valid"])
+			
 			elif sink in patterns[paragraph][3]:
 				checkVulnerability(False, ["entry point used is not valid"]) 
+			
 			else:  #vulnerable
 				checkVulnerability(True, [patterns[paragraph][0][0], patterns[paragraph][2]])
 
 		else: #there was no sanitization previously
-
+			i = 0
 			for pattern in patterns:
 
-				if entry in pattern[1] and sink in pattern[3]:
-					checkVulnerability(True, [patterns[paragraph][0][0], patterns[paragraph][2]])
+				if entrypoints[entry] in pattern[1] and sink in pattern[3]:
+					checkVulnerability(True, [patterns[i][0][0], patterns[i][2]])
+				i = i +1
 
 			else:
 				checkVulnerability(False, ["entry point does not match with sensitive sink"])
@@ -143,11 +149,9 @@ def call(i):
 			if len(sanitization):	
 				del sanitization[list(sanitization)[0]] #delete all the non sanitization methods
 			if isTainted(j['name']):
-				#checkVulnerability(i['what']['name'])
 				checkPattern(i['what']['name'])
 			else:
-				#checkVulnerability(i['what']['name'])
-				checkSanitization()
+				checkSanitization(i['what']['name'])
 
 		if patternScanner(i['what']['name'],1) == 2: #sanitization
 			sanitization[i['what']['name']].append(j['name'])
@@ -236,7 +240,6 @@ def patternInicialization(filepath):
 		if i == 3:
 			aux2 = []
 			for j in line.rstrip().split(','):
-				aux2 = []
 				aux2.append(j)
 			aux.append(aux2)
 		if i == 4:
@@ -248,6 +251,7 @@ def patternInicialization(filepath):
 			aux = []
 			i = -1
 		i = i + 1
+
 
 def astAnalyser(astFilepath, patternsFilepath):
 	global conditionalFlag
