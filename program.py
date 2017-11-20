@@ -79,7 +79,7 @@ def conditionalEngine(i, taint):
 		else:
 			conditional[i['left']['name']] = [False]
 
-	print conditional
+	#print conditional
 
 def isAssign(i):
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
@@ -120,14 +120,14 @@ def isAssign(i):
 		if i['right']['left']['kind'] == "variable":
 			query[i['left']['name']].append(i['right']['left']['name'])
 
+			if isTainted(i['right']['left']['name']):
+				tainted[i['left']['name']] = tainted[i['right']['left']['name']]
+
 		if i['right']['right']['kind'] == "variable":
 			query[i['left']['name']].append(i['right']['right']['name'])
 
-		if isTainted(i['right']['right']['name']):
-			tainted[i['left']['name']] = tainted[i['right']['right']['name']]
-
-		elif isTainted(i['right']['left']['name']):
-			tainted[i['left']['name']] = tainted[i['right']['left']['name']]
+			if isTainted(i['right']['right']['name']):
+				tainted[i['left']['name']] = tainted[i['right']['right']['name']]
 
 
 	if i['right']['kind'] == "call": #assign -> call
