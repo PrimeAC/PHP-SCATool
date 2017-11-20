@@ -11,6 +11,8 @@ query = {}
 sanitization = None
 paragraph = [] 
 conditionalFlag = 0
+conditionalIterator = 0
+
 
 def checkSanitization(sink):
 	if paragraph != []:
@@ -70,16 +72,24 @@ def checkAllPatterns(sink):
 def conditionalEngine(i, taint):
 	if taint:
 		if conditional.has_key(i['left']['name']):
-			conditional[i['left']['name']].append(True)
+			if len(conditional[i['left']['name']]) <= conditionalIterator:
+				conditional[i['left']['name']].append(True)
+			else:
+				conditional[i['left']['name']][conditionalIterator] = True
 		
 		else:
-			conditional[i['left']['name']] = [True]
+			conditional[i['left']['name']] = []
+			conditional[i['left']['name']].append(True)
 				 
 	else:
 		if conditional.has_key(i['left']['name']):
-			conditional[i['left']['name']].append(False)
+			if len(conditional[i['left']['name']]) <= conditionalIterator:
+				conditional[i['left']['name']].append(False)
+			else:
+				conditional[i['left']['name']][conditionalIterator] = False
 		else:
-			conditional[i['left']['name']] = [False]
+			conditional[i['left']['name']] = []
+			conditional[i['left']['name']].append(False)
 
 def isAssign(i):
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
@@ -150,25 +160,22 @@ def isAssign(i):
 
 
 def isIf(i, recursion):
-	if len(i['body']['children']) == 0:
-		for variable in tainted:
-			conditional[variable] = [tainted[variable]]
-		
+	global conditionalIterator
+
 	for line in i['body']['children']:
 		if line['kind'] == "assign":
 			isAssign(line)
 
 		if line['kind'] == 'call':
 			call(line)
+	
+	conditionalIterator = conditionalIterator +1
 
 	if recursion == True:
 		if i['alternate']:
 			isIf(i['alternate'], True)
 
 	else:
-		if len(i['alternate']['children']) == 0:
-			for variable in tainted:
-				conditional[variable] = [tainted[variable]]
 
 		for line in i['alternate']['children']:
 			if line['kind'] == "assign":
@@ -176,6 +183,7 @@ def isIf(i, recursion):
 
 			if line['kind'] == 'call':
 				call(line)
+	
 
 def call(i):
 	global paragraph
