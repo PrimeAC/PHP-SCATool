@@ -9,11 +9,11 @@ entrypoints = {}
 query = {}
 
 sanitization = None
-paragraph = None 
+paragraph = [] 
 conditionalFlag = 0
 
 def checkSanitization(sink):
-	if paragraph != None:
+	if paragraph != []:
 		checkSpecificPattern(sink)
 	else:
 		checkVulnerability(False, ["entry point does not match with sensitive sink"])
@@ -39,19 +39,21 @@ def checkVulnerability(vulnerable, info):
 
 def checkSpecificPattern(sink):
 	for entry in entrypoints:
-		if entrypoints[entry] in patterns[paragraph][1]:
-
-			if sink in patterns[paragraph][3]:
-				checkVulnerability(False, [sanitization])  #false due to valid sanitization for entry and sink
+		i = -1
+		for paragraphs in paragraph:	
+			i = i + 1
+			if entrypoints[entry] in patterns[paragraphs][1]:
+				if sink in patterns[paragraphs][3]:
+					checkVulnerability(False, [sanitization])  #false due to valid sanitization for entry and sink
+				
+				elif i == len(paragraph) - 1:
+					checkVulnerability(False, ["sink used is not valid"])
+				
+			elif sink in patterns[paragraphs][3]:
+				checkVulnerability(False, ["entry point used is not valid"]) 
 			
-			else:
-				checkVulnerability(False, ["sink used is not valid"])
-			
-		elif sink in patterns[paragraph][3]:
-			checkVulnerability(False, ["entry point used is not valid"]) 
-		
-		else:  #vulnerable
-			checkVulnerability(True, [patterns[paragraph][0][0], patterns[paragraph][2]])
+			else:  #vulnerable
+				checkAllPatterns(sink)
 
 def checkAllPatterns(sink):
 
@@ -78,8 +80,6 @@ def conditionalEngine(i, taint):
 			conditional[i['left']['name']].append(False)
 		else:
 			conditional[i['left']['name']] = [False]
-
-	#print conditional
 
 def isAssign(i):
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
@@ -186,7 +186,6 @@ def call(i):
 		if patternScanner(i['what']['name'],1) == 3: #sensitive sink
 
 			if isTainted(j['name']):
-
 				checkAllPatterns(i['what']['name'])
 			else:
 				checkSanitization(i['what']['name'])
@@ -229,7 +228,7 @@ def isTainted(var):
 		return patternScanner(var,2)
 
 def patternScanner(value, mode):
-
+	aux = []
 	for group in patterns:
 
 		for line in group:
@@ -245,9 +244,11 @@ def patternScanner(value, mode):
 						return True
 
 					if mode == 3:
-						return patterns.index(group)
+						aux.append(patterns.index(group))
+						#return patterns.index(group)
 	if mode == 2:
 		return False
+	return aux
 
 def recursiveVariables(var):
 
@@ -311,9 +312,7 @@ def astAnalyser(astFilepath, patternsFilepath):
 	json_data = json.load(JSONslice)
 
 	for i in json_data['children']:
-		#print tainted
-
-		#print conditional
+		
 		if i['kind'] == "assign": #assign
 			isAssign(i)
 			
