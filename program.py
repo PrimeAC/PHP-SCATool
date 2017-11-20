@@ -1,13 +1,10 @@
 import json
 import sys
 
-
 patterns = []
 
 tainted = {}
-
 conditional = {}
-
 entrypoints = {}
 query = {}
 
@@ -57,6 +54,7 @@ def checkSpecificPattern(sink):
 			checkVulnerability(True, [patterns[paragraph][0][0], patterns[paragraph][2]])
 
 def checkAllPatterns(sink):
+
 	for entry in entrypoints:
 		i = 0
 		for pattern in patterns:
@@ -66,6 +64,22 @@ def checkAllPatterns(sink):
 			i = i +1
 
 		checkVulnerability(False, ["entry point does not match with sensitive sink"])
+
+def conditionalEngine(i, taint):
+	if taint:
+		if conditional.has_key(i['left']['name']):
+			conditional[i['left']['name']].append(True)
+		
+		else:
+			conditional[i['left']['name']] = [True]
+				 
+	else:
+		if conditional.has_key(i['left']['name']):
+			conditional[i['left']['name']].append(False)
+		else:
+			conditional[i['left']['name']] = [False]
+
+	print conditional
 
 def isAssign(i):
 	if i['right']['kind'] == "offsetlookup": #assign -> offsetlookup
@@ -84,22 +98,17 @@ def isAssign(i):
 				if isTainted(j['name']):
 					
 					if conditionalFlag == 1:
-						if conditional.has_key(i['left']['name']):
-							conditional[i['left']['name']].append(True)
-						else:
-							conditional[i['left']['name']] = [True]
-						 
-					
+						conditionalEngine(i, True) 
+						break
 					else:
 						tainted[i['left']['name']] = True
+						break
 
 				else:
 
 					if conditionalFlag == 1:
-						if conditional.has_key(i['left']['name']):
-							conditional[i['left']['name']].append(False)
-						else:
-							conditional[i['left']['name']] = [False]
+						conditionalEngine(i, False)
+						break
 
 					else:
 						tainted[i['left']['name']] = False
@@ -122,10 +131,14 @@ def isAssign(i):
 
 
 	if i['right']['kind'] == "call": #assign -> call
+		
+		if conditionalFlag == 1:
+			conditionalEngine(i, call(i['right']))
+		else:
+			#new implementation
+			tainted[i['left']['name']] = call(i['right'])
 
-		#new implementation
-		tainted[i['left']['name']] = call(i['right'])
-
+		recursiveVariables(i['left']['name'])
 
 	if i['right']['kind'] == "variable": #assign -> variable
 		query[i['left']['name']] = [i['right']['name']]
@@ -137,6 +150,10 @@ def isAssign(i):
 
 
 def isIf(i, recursion):
+	if len(i['body']['children']) == 0:
+		for variable in tainted:
+			conditional[variable] = [tainted[variable]]
+		
 	for line in i['body']['children']:
 		if line['kind'] == "assign":
 			isAssign(line)
@@ -149,6 +166,10 @@ def isIf(i, recursion):
 			isIf(i['alternate'], True)
 
 	else:
+		if len(i['alternate']['children']) == 0:
+			for variable in tainted:
+				conditional[variable] = [tainted[variable]]
+
 		for line in i['alternate']['children']:
 			if line['kind'] == "assign":
 				isAssign(line)
@@ -163,14 +184,15 @@ def call(i):
 	for j in i['arguments']:
 		
 		if patternScanner(i['what']['name'],1) == 3: #sensitive sink
+
 			if isTainted(j['name']):
+
 				checkAllPatterns(i['what']['name'])
 			else:
 				checkSanitization(i['what']['name'])
 
 		if patternScanner(i['what']['name'],1) == 2: #sanitization
 			sanitization = i['what']['name']
-			print sanitization
 			paragraph = patternScanner(i['what']['name'],3) #saves the paragraph number 
 			return False
 
@@ -289,7 +311,9 @@ def astAnalyser(astFilepath, patternsFilepath):
 	json_data = json.load(JSONslice)
 
 	for i in json_data['children']:
-	
+		#print tainted
+
+		#print conditional
 		if i['kind'] == "assign": #assign
 			isAssign(i)
 			
@@ -308,4 +332,5 @@ def astAnalyser(astFilepath, patternsFilepath):
 			conditionalVerification()
 			conditionalFlag = 0
 
+#Application Start
 astAnalyser(sys.argv[1], "vulnPatterns.txt")
