@@ -1,6 +1,6 @@
 # Discovering vulnerabilities in PHP web applications
 
-Repository for the project of the Software Security class.
+Repository for the project of the Software Security class. Development of a Static Code Analysis (SCA) tool for PHP language.
 
 # Problem:
 
